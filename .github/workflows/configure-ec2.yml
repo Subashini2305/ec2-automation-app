@@ -1,0 +1,69 @@
+name: Configure Fresh EC2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_ACTIONS_HOST }}
+          username: ${{ secrets.EC2_ACTIONS_USERNAME }}
+          key: ${{ secrets.EC2_ACTIONS_SSH_KEY }}
+
+          script: |
+            set -e
+
+            echo "Starting EC2 configuration..."
+
+            # Install Git
+            sudo dnf install git -y
+
+            echo "Git installed."
+
+            # Clone application
+            cd /home/ec2-user
+            git clone https://github.com/Subashini2305/ec2-automation-app.git
+
+            echo "Application cloned."
+
+            # Create virtual environment
+            cd /home/ec2-user/ec2-automation-app
+            python3 -m venv venv
+
+            echo "Virtual environment created."
+
+            # Install dependencies
+            venv/bin/pip install -r requirements.txt
+
+            echo "Dependencies installed."
+
+            # Create systemd service
+            sudo tee /etc/systemd/system/ec2-automation-app.service > /dev/null <<'EOF'
+            [Unit]
+            Description=EC2 Automation Flask App
+            After=network.target
+
+            [Service]
+            User=ec2-user
+            WorkingDirectory=/home/ec2-user/ec2-automation-app
+            Environment="PATH=/home/ec2-user/ec2-automation-app/venv/bin"
+            ExecStart=/home/ec2-user/ec2-automation-app/venv/bin/python app.py
+            Restart=always
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+
+            echo "Systemd service created."
+
+            # Start application
+            sudo systemctl daemon-reload
+            sudo systemctl enable ec2-automation-app
+            sudo systemctl start ec2-automation-app
+
+            echo "EC2 configuration completed!"
