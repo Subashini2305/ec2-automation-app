@@ -19,7 +19,7 @@ def about():
 def hello():
     return """
     <h1>Hello from GitHub Actions! 🚀</h1>
-    <p>This page was deployed automatically.</p>
+    <p>This page was deployed automatically.This is test from actions.</p>
     """
 
 if __name__ == "__main__":
